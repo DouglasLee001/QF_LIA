@@ -1,0 +1,13 @@
+,0,1
+bignum_lia2.smt2,0.037,unsat
+cap6000.sat.smt2,0.825,sat
+disctom.sat.smt2,0.502,sat
+ds.sat.smt2,0.002,unknown
+fast0507.sat.smt2,0.002,unknown
+harp2.sat.smt2,0.057,sat
+manna81.sat.smt2,0.07,sat
+nw04.sat.smt2,0.002,unknown
+protfold.sat.smt2,0.163,sat
+seymour.sat.smt2,0.079,sat
+sp97ar.sat.smt2,0.002,unknown
+stp3d.sat.smt2,0.002,unknown

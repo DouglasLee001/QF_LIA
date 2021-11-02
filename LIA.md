@@ -5,8 +5,10 @@
 TODO：
 
 - [x] 测试纯单元子句约束在gurobi上的效果,将例子编码为c++格式输入
-- [ ] 测试unbd例子在特定论文上的效果
-- [ ] 将normalize转成PBO求解
+- [x] 以lp的形式读入，避免编译部分->gurobi 在unbd上只能求出1个，在normalize(伪布尔约束)上12个求不出
+- [ ] 调研PBS
+- [x] 阅读相关论文，测试unbd例子在特定论文上的效果
+- [ ] 将normalize转成PB求解
 - [ ] 编译并尝试突破多单元子句的例子
 
 
@@ -29,7 +31,7 @@ TODO：
 | ==slack==     | 231  | 1      | 1          | 70       | term合取                 | 0                                                   | N                                   | 全是单元子句                                                 |
 | ==no_slack==  | 230  | 0      | 0          | 30       | term的合取               | 0                                                   | N                                   | 全是单元子句                                                 |
 | ==problem==   | 70   | 0      | 0          | 12       | term的合取，但每项都较长 | 0                                                   | N                                   | 全是单元子句                                                 |
-| ==normalize== | 41   | 11     | 27         | 20       | term的合取，但是特别多   | 19(算不出来的原因主要是例子长度过大，编译耗时过多)  | 路径不经过context中setup_and_check  |                                                              |
+| ==normalize== | 41   | 11     | 27         | 12       | term的合取，但是特别多   | 12                                                  | 路径不经过context中setup_and_check  |                                                              |
 | Example       | 20   | 8      | 9          | 9        | 可以以cnf形式出现        |                                                     | Y                                   | 子句长度较长                                                 |
 | ==unbd==      | 25   | 25?    | 25         | 25       | term的合取，长度较长     | 24（例子的作者就是decision procedure for LA的作者） | N                                   | 全是单元子句                                                 |
 | ==prime==     | 19   | 0      | 0          | 0        | term的合取               | 0                                                   | N                                   | 全是单元子句                                                 |
@@ -40,7 +42,7 @@ TODO：
 | ==others==    | 12   | 6      | 4          | 3        | term的合取               | 5(算不出来的原因是例子过大)                         |                                     | 多为伪布尔约束                                               |
 | ALL           | 1987 | 118    | 89         | 267      |                          |                                                     |                                     |                                                              |
 
-有很多例子都是纯term的合取，632个，其中z3 的unknown的有44个
+有很多例子都是纯term的合取，632个，其中z3 的unknown的有44个,gurobi unknown的有41
 
 ## 测试各个求解器在不带bool例子上的效果
 

@@ -40,8 +40,7 @@ void ls_solver::build_lits(std::string &in_string){
     
 }
 
-bool build_instance(std::vector<std::vector<int> >& clause_vec){
-    clause_vec[0][0]=1;
+bool ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
     return false;
 }
 

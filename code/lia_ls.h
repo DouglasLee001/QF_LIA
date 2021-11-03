@@ -76,6 +76,12 @@ public:
     float                       _swt_p;//w=w*p+ave_w*(1-p)
     uint64_t                    total_clause_weight;
     
+    //input transformation
+    void                        split_string(std::string &in_string, std::vector<std::string> &str_vec,std::string pattern);
+    void                        build_lits(std::string &in_string);
+    bool                        build_instance(std::vector<std::vector<int> >& clause_vec);
+    
+    
     //initialize
     ls_solver();
     ls_solver(int random_seed);

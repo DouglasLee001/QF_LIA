@@ -21,6 +21,30 @@ _max_step(UINT64_MAX),
 CC_mode(-1)
 {mt.seed(random_seed);}
 
+//input transformation
+void ls_solver::split_string(std::string &in_string, std::vector<std::string> &str_vec,std::string pattern=" "){
+    std::string::size_type pos;
+    in_string+=pattern;
+    size_t size=in_string.size();
+    for(size_t i=0; i<size; i++){
+    pos=in_string.find(pattern,i);
+    if(pos<size){
+        std::string s=in_string.substr(i,pos-i);
+        str_vec.push_back(s);
+        i=pos+pattern.size()-1;
+        }
+    }
+}
+
+void ls_solver::build_lits(std::string &in_string){
+    
+}
+
+bool build_instance(std::vector<std::vector<int> >& clause_vec){
+    clause_vec[0][0]=1;
+    return false;
+}
+
 void ls_solver::make_space(){
     _solution.resize(_num_vars+_additional_len);
     _best_solutin.resize(_num_vars+_additional_len);

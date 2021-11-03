@@ -37,6 +37,7 @@ struct variable{
 struct clause{
     std::vector<int>            literals;
     std::vector<int>            var_idxs;
+    int                         weight;
 };
 
 class ls_solver{
@@ -84,8 +85,6 @@ public:
     void                        initialize_variable_datas();
     void                        initialize_clause_datas();
     
-    //local search
-    void                        local_search();
     
     //random walk
     void                        update_clause_weight();
@@ -95,15 +94,15 @@ public:
     //construction
     void                        construct_slution_score();//construct the solution based on score
     uint64_t                    pick_construct_idx(int &best_value);
-    void                        construct_move(uint64_t var_idx,int value);
-    int                         construct_score(uint64_t var_idx,int value);
+    void                        construct_move(uint64_t var_idx,int change_value);
+    int                         construct_score(uint64_t var_idx,int change_value);
     
     //basic operations
     inline void                 sat_a_clause(uint64_t clause_idx){unsat_clauses->delete_element((int)clause_idx);};
     inline void                 unsat_a_clause(uint64_t clause_idx){unsat_clauses->insert_element((int)clause_idx);};
     bool                        update_best_solution();
     void                        modify_CC();
-    int                         pick_critical_move();
+    int                         pick_critical_move(int &best_value);
     void                        critical_move(uint64_t var_idx,int change_value);
     void                        invert_lit(lit &l);
     int                         delta_lit(lit &l);
@@ -112,14 +111,14 @@ public:
     //print
     void                        print_formula();
     void                        print_literal(lit &l);
-    void                        print_solution(bool detail);
     //calculate score
     int                         critical_score(uint64_t var_idx,int change_value);
     int                         critical_subscore(uint64_t var_idx,int change_value);
     void                        critical_score_subscore(uint64_t var_idx,int change_value);
     //check
     bool                        check_solution();
-    bool                        check_best_solution();
 
+    //local search
+    void                        local_search();
 };
 }

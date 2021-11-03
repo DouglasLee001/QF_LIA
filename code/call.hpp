@@ -17,7 +17,7 @@ public:
     Call_fun();
     int num;
     int func(int argc,char *argv[]);
-    boolidl::bool_ls_solver * m_ls;
+    lia::ls_solver * m_ls;
 };
 
 }

@@ -1,5 +1,84 @@
 #include "lia_ls.h"
 namespace lia{
+//input transformation
+void ls_solver::split_string(std::string &in_string, std::vector<std::string> &str_vec,std::string pattern=" "){
+    std::string::size_type pos;
+    in_string+=pattern;
+    size_t size=in_string.size();
+    for(size_t i=0; i<size; i++){
+    pos=in_string.find(pattern,i);
+    if(pos<size){
+        std::string s=in_string.substr(i,pos-i);
+        str_vec.push_back(s);
+        i=pos+pattern.size()-1;
+        }
+    }
+}
+
+void ls_solver::build_lits(std::string &in_string){
+    std::vector<std::string> vec;
+    split_string(in_string, vec);
+    if(vec[0]=="0"){_lits[0].lits_index=0; return;}//true literal
+    int lit_index=std::atoi(vec[0].c_str());
+    if(vec[1][1]=='!'){_lits[lit_index].lits_index=0;return;}//lits index==0 means that the lit is true
+    lit *l=&(_lits[lit_index]);
+    if(vec.size()>2){
+        if(vec.size()>6){
+            int idx=5;
+            for(;idx<vec.size();idx++){
+                if(vec[idx]==")"){break;}
+                if(vec[idx]=="("){
+                    idx+=2;
+                    int coff=std::atoi(vec[idx].c_str());
+                    if(coff>0){
+                        l->pos_coff.push_back(coff);
+                        l->pos_coff_var_idx.push_back((int)transfer_name_to_var(vec[++idx]));
+                    }
+                    else{
+                        l->neg_coff.push_back(-coff);
+                        l->neg_coff_var_idx.push_back((int)transfer_name_to_var(vec[++idx]));
+                    }
+                    idx++;
+                }
+                else{
+                    l->pos_coff.push_back(1);
+                    l->pos_coff_var_idx.push_back((int)transfer_name_to_var(vec[idx]));
+                }
+            }
+            l->key=std::atoi(vec[++idx].c_str());
+            if(vec[2]==">="){l->key=1-l->key;invert_lit(*l);}
+        }//( <= ( + x1 ( * -1 x2 ) x7 ( * -1 x8 ) ) 0 )
+        else{
+            l->lits_index=0;
+            int bound=std::atoi(vec[4].c_str());
+            uint64_t var_idx=transfer_name_to_var(vec[3]);
+            if(vec[2]==">="){_vars[var_idx].low_bound=std::max(_vars[var_idx].low_bound,bound);}
+            else if(vec[2]=="<="){_vars[var_idx].upper_bound=std::min(_vars[var_idx].upper_bound,bound);}
+        }//( >= x 0 )
+        
+    }//lia lit
+    else{
+        
+    }//boolean lit
+    
+}
+
+bool ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
+    return false;
+}
+
+uint64_t ls_solver::transfer_name_to_var(std::string & name){
+    if(name2var.find(name)==name2var.end()){
+        name2var[name]=_vars.size();
+        variable var;
+        var.clause_idxs.reserve(64);
+        var.var_name=name;
+        _vars.push_back(var);
+        return _vars.size()-1;
+    }
+    else return name2var[name];
+}
+
 //initialize
 ls_solver::ls_solver()
 :_swt_p(0.3),
@@ -21,28 +100,6 @@ _max_step(UINT64_MAX),
 CC_mode(-1)
 {mt.seed(random_seed);}
 
-//input transformation
-void ls_solver::split_string(std::string &in_string, std::vector<std::string> &str_vec,std::string pattern=" "){
-    std::string::size_type pos;
-    in_string+=pattern;
-    size_t size=in_string.size();
-    for(size_t i=0; i<size; i++){
-    pos=in_string.find(pattern,i);
-    if(pos<size){
-        std::string s=in_string.substr(i,pos-i);
-        str_vec.push_back(s);
-        i=pos+pattern.size()-1;
-        }
-    }
-}
-
-void ls_solver::build_lits(std::string &in_string){
-    
-}
-
-bool ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
-    return false;
-}
 
 void ls_solver::make_space(){
     _solution.resize(_num_vars+_additional_len);
@@ -172,8 +229,8 @@ void ls_solver::print_literal(lit &l){
     for(int i=0;i<l.pos_coff.size();i++)
         {std::cout<<"( "<<l.pos_coff[i]<<" * "<<_vars[l.pos_coff_var_idx[i]].var_name<<" ) + ";}
     for(int i=0;i<l.neg_coff.size();i++)
-        {std::cout<<"( "<<l.neg_coff[i]<<" * "<<_vars[l.neg_coff_var_idx[i]].var_name<<" ) + ";}
-    std::cout<<"( "<<l.key<<" )\n";
+        {std::cout<<"( -"<<l.neg_coff[i]<<" * "<<_vars[l.neg_coff_var_idx[i]].var_name<<" ) + ";}
+    std::cout<<"( "<<l.key<<" ) <= 0\n";
 }
 
 //calculate score

@@ -19,6 +19,7 @@
 
 namespace lia {
 //one arith lit is in the form of a_1*x_1+...+a_n*x_n<=k, the cofficient are divided into positive ones and negative ones
+const int max_int=2147483640;
 struct lit{
     std::vector<int>            pos_coff_var_idx;
     std::vector<int>            pos_coff;
@@ -26,12 +27,15 @@ struct lit{
     std::vector<int>            neg_coff;
     int                         key;
     int                         clause_idx;
+    int                         lits_index;
 };
 
 struct variable{
     std::vector<int>            literals;
-    std::vector<int>            clasue_idxs;
+    std::vector<int>            clause_idxs;
     std::string                 var_name;
+    int                         low_bound=max_int;
+    int                         upper_bound=-max_int;
 };
 
 struct clause{
@@ -80,6 +84,7 @@ public:
     void                        split_string(std::string &in_string, std::vector<std::string> &str_vec,std::string pattern);
     void                        build_lits(std::string &in_string);
     bool                        build_instance(std::vector<std::vector<int> >& clause_vec);
+    uint64_t                    transfer_name_to_var(std::string & name);
     
     
     //initialize

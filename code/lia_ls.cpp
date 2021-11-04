@@ -24,6 +24,7 @@ void ls_solver::build_lits(std::string &in_string){
     lit *l=&(_lits[lit_index]);
     if(vec.size()>2){
         if(vec.size()>6){
+            l->lits_index=std::atoi(vec[0].c_str());
             int idx=5;
             for(;idx<vec.size();idx++){
                 if(vec[idx]==")"){break;}
@@ -63,8 +64,16 @@ void ls_solver::build_lits(std::string &in_string){
     
 }
 
-bool ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
-    return false;
+void ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
+    _clauses.resize(clause_vec.size());
+    _num_clauses=0;
+    for (auto clause_curr:clause_vec) {
+        bool is_tautology=false;
+        for (auto l_idx : clause_curr) {if(_lits[std::abs(l_idx)].lits_index==0){is_tautology=true;break;}}
+        if(is_tautology){continue;}
+        for (auto l_idx : clause_curr) {_clauses[_num_clauses].literals.push_back(l_idx);}
+        _num_clauses++;
+    }
 }
 
 uint64_t ls_solver::transfer_name_to_var(std::string & name){
@@ -217,10 +226,12 @@ void ls_solver::clear_prev_data(){
 
 //print
 void ls_solver::print_formula(){
-    int i=0;
-    for(clause & cl :_clauses){
-        std::cout<<i++<<"\n";
-        for(int l_idx: cl.literals){print_literal(_lits[l_idx]);}
+    for(int i=0;i<_num_clauses;i++){
+        clause *cl=&(_clauses[i]);
+        std::cout<<i<<"\n";
+        for(int l_idx: cl->literals){
+            if(l_idx<0){std::cout<<"neg: ";}
+            print_literal(_lits[l_idx]);}
         std::cout<<"\n";
     }
 }

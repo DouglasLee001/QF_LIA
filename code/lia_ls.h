@@ -41,7 +41,7 @@ struct variable{
 struct clause{
     std::vector<int>            literals;
     std::vector<int>            var_idxs;
-    int                         weight;
+    int                          weight=1;
 };
 
 class ls_solver{
@@ -83,7 +83,7 @@ public:
     //input transformation
     void                        split_string(std::string &in_string, std::vector<std::string> &str_vec,std::string pattern);
     void                        build_lits(std::string &in_string);
-    bool                        build_instance(std::vector<std::vector<int> >& clause_vec);
+    void                        build_instance(std::vector<std::vector<int> >& clause_vec);
     uint64_t                    transfer_name_to_var(std::string & name);
     
     

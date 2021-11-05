@@ -26,21 +26,20 @@ struct lit{
     std::vector<int>            neg_coff_var_idx;
     std::vector<int>            neg_coff;
     int                         key;
-    int                         clause_idx;
     int                         lits_index;
 };
 
 struct variable{
     std::vector<int>            literals;
-    std::vector<int>            clause_idxs;
+    std::vector<uint64_t>       literal_clause;//literal_clause[i]=c means the ith literal containing the var is in cth clause
+    std::vector<uint64_t>       clause_idxs;
     std::string                 var_name;
-    int                         low_bound=max_int;
-    int                         upper_bound=-max_int;
+    int                         low_bound=-max_int;
+    int                         upper_bound=max_int;
 };
 
 struct clause{
     std::vector<int>            literals;
-    std::vector<int>            var_idxs;
     int                          weight=1;
 };
 
@@ -95,7 +94,7 @@ public:
     void                        initialize();
     void                        initialize_variable_datas();
     void                        initialize_clause_datas();
-    
+    void                        build_neighbor();
     
     //random walk
     void                        update_clause_weight();

@@ -71,9 +71,31 @@ void ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
         bool is_tautology=false;
         for (auto l_idx : clause_curr) {if(_lits[std::abs(l_idx)].lits_index==0){is_tautology=true;break;}}
         if(is_tautology){continue;}
-        for (auto l_idx : clause_curr) {_clauses[_num_clauses].literals.push_back(l_idx);}
+        for (auto l_idx : clause_curr) {
+            _clauses[_num_clauses].literals.push_back(l_idx);
+            lit *l=&(_lits[l_idx]);
+            variable *v;
+            for(int i=0;i<l->pos_coff.size();i++){
+                v=&(_vars[l->pos_coff_var_idx[i]]);
+                v->literals.push_back(l_idx);
+                v->literal_clause.push_back(_num_clauses);
+            }
+            for(int i=0;i<l->neg_coff.size();i++){
+                v=&(_vars[l->neg_coff_var_idx[i]]);
+                v->literals.push_back(l_idx);
+                v->literal_clause.push_back(_num_clauses);
+            }
+        }
         _num_clauses++;
     }
+    for(variable & v:_vars){
+        uint64_t curr_clause_idx=UINTMAX_MAX;
+        for(int i=0;i<v.literal_clause.size();i++){
+            if(curr_clause_idx!=v.literal_clause[i]){v.clause_idxs.push_back(v.literal_clause[i]);}
+        }
+    }
+    _num_vars=_vars.size();
+    make_space();
 }
 
 uint64_t ls_solver::transfer_name_to_var(std::string & name){
@@ -81,6 +103,8 @@ uint64_t ls_solver::transfer_name_to_var(std::string & name){
         name2var[name]=_vars.size();
         variable var;
         var.clause_idxs.reserve(64);
+        var.literals.reserve(64);
+        var.literal_clause.reserve(64);
         var.var_name=name;
         _vars.push_back(var);
         return _vars.size()-1;
@@ -129,6 +153,10 @@ void ls_solver::initialize_variable_datas(){
 }
 
 void ls_solver::initialize_clause_datas(){
+    
+}
+
+void ls_solver::build_neighbor(){
     
 }
 

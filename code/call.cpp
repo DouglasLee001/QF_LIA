@@ -37,6 +37,7 @@ int Call_fun::func(int argc,char *argv[]){
     }
     m_ls->build_instance(vec);//传入一个vector<vector<int> >
     m_ls->print_formula();
+    m_ls->local_search();
     return 0;
 }
 }

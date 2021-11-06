@@ -18,7 +18,8 @@
 #include "lia_Array.h"
 
 namespace lia {
-//one arith lit is in the form of a_1*x_1+...+a_n*x_n<=k, the cofficient are divided into positive ones and negative ones
+//one arith lit is in the form of a_1*x_1+...+a_n*x_n+k<=0, the cofficient are divided into positive ones and negative ones, the coff are positive.
+//if neg_coff =1 neg_coff_var=x pos_coff=1 pos_coff_var=y means y-x
 const int max_int=2147483640;
 struct lit{
     std::vector<int>            pos_coff_var_idx;
@@ -27,6 +28,7 @@ struct lit{
     std::vector<int>            neg_coff;
     int                         key;
     int                         lits_index;
+    int                         delta;//the current value of left side
 };
 
 struct variable{
@@ -41,6 +43,7 @@ struct variable{
 struct clause{
     std::vector<int>            literals;
     int                          weight=1;
+    int                          sat_count;
 };
 
 class ls_solver{
@@ -66,7 +69,8 @@ public:
     std::vector<int>            CClist;//CClist[2*var]==1 and [2*var+1]==1 means that var is allowed to move forward or backward
     int                          CC_mode;
     std::vector<uint64_t>       last_move;
-    std::vector<int>            operation_vec;
+    std::vector<int>            operation_var_idx_vec;
+    std::vector<int>            operation_change_value_vec;
     std::chrono::steady_clock::time_point start;
     double                      best_cost_time;
     double                      _cutoff;
@@ -93,6 +97,7 @@ public:
     void                        make_lits_space(uint64_t num_lits){_num_lits=num_lits;_lits.resize(num_lits+_additional_len);};
     void                        initialize();
     void                        initialize_variable_datas();
+    void                        initialize_lit_datas();
     void                        initialize_clause_datas();
     void                        build_neighbor();
     
@@ -129,6 +134,6 @@ public:
     bool                        check_solution();
 
     //local search
-    void                        local_search();
+    bool                        local_search();
 };
 }

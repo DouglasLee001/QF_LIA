@@ -47,7 +47,7 @@ void ls_solver::build_lits(std::string &in_string){
                 }
             }
             l->key=std::atoi(vec[++idx].c_str());
-            if(vec[2]==">="){l->key=1-l->key;invert_lit(*l);}
+            if(vec[2]==">="){l->key++;invert_lit(*l);}
         }//( <= ( + x1 ( * -1 x2 ) x7 ( * -1 x8 ) ) 0 )
         else{
             l->lits_index=0;
@@ -95,6 +95,7 @@ void ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
         }
     }
     _num_vars=_vars.size();
+    best_found_cost=(int)_num_clauses;
     make_space();
 }
 
@@ -137,23 +138,46 @@ CC_mode(-1)
 void ls_solver::make_space(){
     _solution.resize(_num_vars+_additional_len);
     _best_solutin.resize(_num_vars+_additional_len);
-    tabulist.resize(2*_num_vars+_additional_len);
-    CClist.resize(2*_num_vars+_additional_len);
-    operation_vec.resize(2*_num_lits+_additional_len);
-    last_move.resize(2*_num_vars+_additional_len);
+    tabulist.resize(2*_num_vars+_additional_len,0);
+    CClist.resize(2*_num_vars+_additional_len,1);
+    operation_var_idx_vec.resize(2*_num_lits+_additional_len);
+    operation_change_value_vec.resize(2*_num_lits+_additional_len);
+    last_move.resize(2*_num_vars+_additional_len,0);
     unsat_clauses=new Array((int)_num_clauses+(int)_additional_len);
 }
 
 void ls_solver::initialize(){
-    
+    clear_prev_data();
+    construct_slution_score();
+    initialize_lit_datas();
+    initialize_clause_datas();
+    initialize_variable_datas();
+    best_found_this_restart=unsat_clauses->size();
+    update_best_solution();
 }
 
 void ls_solver::initialize_variable_datas(){
     
 }
-
+//initialize the delta of each literal by delta_lit operation
+void ls_solver::initialize_lit_datas(){
+    for(int i=0;i<_num_lits;i++){
+        if(_lits[i].lits_index!=0){_lits[i].delta=delta_lit(_lits[i]);}
+    }
+}
+//set the sat num of each clause, and sat/unsat a clause
 void ls_solver::initialize_clause_datas(){
-    
+    for(uint64_t c=0;c<_num_clauses;c++){
+        clause *cl=&(_clauses[c]);
+        cl->sat_count=0;
+        cl->weight=1;
+        for(int l_idx:cl->literals){
+            if((l_idx>0&&_lits[l_idx].delta<=0)||(l_idx<0&&_lits[l_idx].delta>0)){cl->sat_count++;}
+        }
+        if(cl->sat_count==0){unsat_a_clause(c);}
+        else{sat_a_clause(c);}
+    }
+    total_clause_weight=_num_clauses;
 }
 
 void ls_solver::build_neighbor(){
@@ -183,7 +207,8 @@ void ls_solver::random_walk(){
 
 //construction
 void ls_solver::construct_slution_score(){
-    
+//TODO::this is a temp function, setting all vars 0
+    for(int i=0;i<_num_vars;i++){_solution[i]=0;}
 }
 
 uint64_t ls_solver::pick_construct_idx(int &best_value){
@@ -218,7 +243,33 @@ void ls_solver::modify_CC(){
 }
 
 int ls_solver::pick_critical_move(int &best_value){
-    return 0;
+    int best_score,score,best_var_idx,cnt,operation;
+    bool BMS=false;
+    best_score=0;
+    best_var_idx=-1;
+    uint64_t best_last_move=UINT64_MAX;
+    int        operation_idx=0;
+    //determine the critical value
+    for(int i=0;i<unsat_clauses->size();i++){
+        clause *cl=&(_clauses[unsat_clauses->element_at(i)]);
+        for(int l_idx:cl->literals){
+            lit *l=&(_lits[std::abs(l_idx)]);
+            for(int i=0;i<l->pos_coff.size();i++){
+                operation_var_idx_vec[operation_idx]=l->pos_coff_var_idx[i];
+                operation_change_value_vec[operation_idx++]=(l_idx>0)?(-l->delta/l->pos_coff[i]):((1-l->delta)/l->pos_coff[i]);
+                //if l_idx>0, delta should be <=0, while it is now >0(too large), so the var should enlarge by (-delta/coff) (this is a negative value), if l_idx<0, delta should be >=1, while it is now <1(too small), so the var should enlarge by (1-delta)/coff (positive value)
+            }
+            for(int i=0;i<l->neg_coff.size();i++){
+                operation_var_idx_vec[operation_idx]=l->neg_coff_var_idx[i];
+                operation_change_value_vec[operation_idx++]=(l_idx>0)?(l->delta/l->neg_coff[i]):((l->delta-1)/l->neg_coff[i]);
+                //if l_idx>0, delta should be <=0, while it is now >0(too large), so the var should enlarge by (delta/coff) (this is a positive value since the coff is neg), if l_idx<0, the delta should be >=1, while it is now <1(too small), so the var should enlarge by (delta-1)/coff (neg value)
+            }
+        }
+    }
+    if(operation_idx>45){BMS=true;cnt=45;}
+    else{BMS=false;cnt=operation_idx;}
+    
+    return best_var_idx;
 }
 
 void ls_solver::critical_move(uint64_t var_idx, int change_value){
@@ -308,8 +359,20 @@ bool ls_solver::check_solution(){
 }
 
 //local search
-void ls_solver::local_search(){
-    
+bool ls_solver::local_search(){
+    int no_improve_cnt=0;
+    int flipv,change_value;
+    start = std::chrono::steady_clock::now();
+    initialize();
+    for(_step=1;_step<_max_step;_step++){
+        if(0==unsat_clauses->size()){return true;}
+        if(_step%1000==0&&(TimeElapsed()>_cutoff)){break;}
+        if(no_improve_cnt>500000){initialize();no_improve_cnt=0;}//restart
+        flipv=pick_critical_move(change_value);
+        critical_move(flipv, change_value);
+        no_improve_cnt=(update_best_solution())?0:(no_improve_cnt+1);
+    }
+    return false;
 }
 
 

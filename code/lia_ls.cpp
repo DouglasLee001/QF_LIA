@@ -78,12 +78,12 @@ void ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
             for(int i=0;i<l->pos_coff.size();i++){
                 v=&(_vars[l->pos_coff_var_idx[i]]);
                 v->literals.push_back(l_idx);
-                v->literal_clause.push_back(_num_clauses);
+                v->literal_clause.push_back((int)_num_clauses);
             }
             for(int i=0;i<l->neg_coff.size();i++){
                 v=&(_vars[l->neg_coff_var_idx[i]]);
                 v->literals.push_back(l_idx);
-                v->literal_clause.push_back(_num_clauses);
+                v->literal_clause.push_back(-(int)_num_clauses);
             }
         }
         _num_clauses++;
@@ -238,7 +238,7 @@ bool ls_solver::update_best_solution(){
     return improve;
 }
 
-void ls_solver::modify_CC(){
+void ls_solver::modify_CC(uint64_t var_idx, int direction){
     
 }
 
@@ -318,7 +318,13 @@ int ls_solver::pick_critical_move(int &best_value){
 }
 
 void ls_solver::critical_move(uint64_t var_idx, int change_value){
-    
+    int direction=(change_value>0)?0:1;
+    critical_score_subscore(var_idx, change_value);
+    _solution[var_idx]+=change_value;
+    //step
+    last_move[2*var_idx+direction]=_step;
+    tabulist[var_idx*2+(direction+1)%2]=_step+3+mt()%10;
+    if(CC_mode!=-1){modify_CC(var_idx,direction);}
 }
 
 void ls_solver::invert_lit(lit &l){
@@ -381,9 +387,32 @@ int ls_solver::critical_score(uint64_t var_idx, int change_value){
 int ls_solver::critical_subscore(uint64_t var_idx, int change_value){
     return 0;
 }
-
+//sat or unsat a clause, update the delta
 void ls_solver::critical_score_subscore(uint64_t var_idx, int change_value){
-    
+    variable * var=&(_vars[var_idx]);
+    lit *l;
+    int l_clause_idx,delta_old;
+    int make_break_in_clause=0;
+    for(int i=0;i<var->literals.size();i++){
+        l=&(_lits[var->literals[i]]);
+        l_clause_idx=var->literal_clause[i];
+        delta_old=l->delta;
+        l->delta=(l_clause_idx>0)?(l->delta+change_value):(l->delta-change_value);//update the delta
+        if(delta_old<=0&&l->delta>0){make_break_in_clause--;}
+        else if(delta_old>0&&l->delta<=0){make_break_in_clause++;}
+        //enter a new clause or the last literal
+        if( (i!=(var->literals.size()-1)&&std::abs(l_clause_idx)!=std::abs(var->literal_clause[i+1])) ||i==(var->literals.size()-1)){
+            int curr_clause_idx=std::abs(l_clause_idx);
+            clause *cp=&(_clauses[curr_clause_idx]);
+            if(cp->sat_count>0&&cp->sat_count+make_break_in_clause==0) {
+                unsat_a_clause(curr_clause_idx);//unsat clause
+            }
+            else if(cp->sat_count==0&&cp->sat_count+make_break_in_clause>0) {
+                sat_a_clause(curr_clause_idx);//sat a clause
+            }
+            make_break_in_clause=0;
+        }
+    }
 }
 
 //check

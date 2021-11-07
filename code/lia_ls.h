@@ -33,7 +33,7 @@ struct lit{
 
 struct variable{
     std::vector<int>            literals;
-    std::vector<uint64_t>       literal_clause;//literal_clause[i]=c means the ith literal containing the var is in cth clause
+    std::vector<int>            literal_clause;//literal_clause[i]=c means the ith literal containing the var is in cth clause, c<0 means the coff of the var in this lit is negative
     std::vector<uint64_t>       clause_idxs;
     std::string                 var_name;
     int                         low_bound=-max_int;
@@ -116,7 +116,7 @@ public:
     inline void                 sat_a_clause(uint64_t clause_idx){unsat_clauses->delete_element((int)clause_idx);};
     inline void                 unsat_a_clause(uint64_t clause_idx){unsat_clauses->insert_element((int)clause_idx);};
     bool                        update_best_solution();
-    void                        modify_CC();
+    void                        modify_CC(uint64_t var_idx,int direction);
     int                         pick_critical_move(int &best_value);
     void                        critical_move(uint64_t var_idx,int change_value);
     void                        invert_lit(lit &l);

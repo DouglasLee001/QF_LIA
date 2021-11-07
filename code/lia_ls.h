@@ -123,6 +123,7 @@ public:
     int                         delta_lit(lit &l);
     double                      TimeElapsed();
     void                        clear_prev_data();
+    int                         devide(int a, int b);
     //print
     void                        print_formula();
     void                        print_literal(lit &l);

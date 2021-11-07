@@ -243,7 +243,8 @@ void ls_solver::modify_CC(){
 }
 
 int ls_solver::pick_critical_move(int &best_value){
-    int best_score,score,best_var_idx,cnt,operation;
+    int best_score,score,best_var_idx,cnt;
+    int operation_var_idx,operation_change_value;
     bool BMS=false;
     best_score=0;
     best_var_idx=-1;
@@ -255,21 +256,65 @@ int ls_solver::pick_critical_move(int &best_value){
         for(int l_idx:cl->literals){
             lit *l=&(_lits[std::abs(l_idx)]);
             for(int i=0;i<l->pos_coff.size();i++){
-                operation_var_idx_vec[operation_idx]=l->pos_coff_var_idx[i];
-                operation_change_value_vec[operation_idx++]=(l_idx>0)?(-l->delta/l->pos_coff[i]):((1-l->delta)/l->pos_coff[i]);
+                int var_idx=l->pos_coff_var_idx[i];
+                if(l_idx>0&&_step>tabulist[2*var_idx+1]){
+                    operation_var_idx_vec[operation_idx]=var_idx;
+                    operation_change_value_vec[operation_idx++]=devide(-l->delta,l->pos_coff[i]);
+                }
+                else if(l_idx<0&&tabulist[2*var_idx]){
+                    operation_var_idx_vec[operation_idx]=var_idx;
+                    operation_change_value_vec[operation_idx++]=devide(1-l->delta, l->pos_coff[i]);
+                }
                 //if l_idx>0, delta should be <=0, while it is now >0(too large), so the var should enlarge by (-delta/coff) (this is a negative value), if l_idx<0, delta should be >=1, while it is now <1(too small), so the var should enlarge by (1-delta)/coff (positive value)
             }
             for(int i=0;i<l->neg_coff.size();i++){
-                operation_var_idx_vec[operation_idx]=l->neg_coff_var_idx[i];
-                operation_change_value_vec[operation_idx++]=(l_idx>0)?(l->delta/l->neg_coff[i]):((l->delta-1)/l->neg_coff[i]);
+                int var_idx=l->neg_coff_var_idx[i];
+                if(l_idx>0&&tabulist[2*var_idx]){
+                    operation_var_idx_vec[operation_idx]=var_idx;
+                    operation_change_value_vec[operation_idx++]=devide(l->delta, l->neg_coff[i]);
+                }
+                else if(l_idx<0&&tabulist[2*var_idx+1]){
+                    operation_var_idx_vec[operation_idx]=var_idx;
+                    operation_change_value_vec[operation_idx++]=devide(l->delta-1, l->neg_coff[i]);
+                }
                 //if l_idx>0, delta should be <=0, while it is now >0(too large), so the var should enlarge by (delta/coff) (this is a positive value since the coff is neg), if l_idx<0, the delta should be >=1, while it is now <1(too small), so the var should enlarge by (delta-1)/coff (neg value)
             }
         }
     }
+    //go through the forward and backward move of vars, evaluate their score, pick the untabued best one
     if(operation_idx>45){BMS=true;cnt=45;}
     else{BMS=false;cnt=operation_idx;}
+    for(int i=0;i<cnt;i++){
+        if(BMS){
+            int idx=mt()%(operation_idx-i);
+            operation_change_value=operation_change_value_vec[idx];
+            operation_var_idx=operation_var_idx_vec[idx];
+            operation_change_value_vec[idx]=operation_change_value_vec[operation_idx-i-1];
+            operation_var_idx_vec[idx]=operation_var_idx_vec[operation_idx-i-1];
+        }
+        else{
+            operation_change_value=operation_change_value_vec[i];
+            operation_var_idx=operation_var_idx_vec[i];
+        }
+        score=critical_score(operation_var_idx,operation_change_value);
+        int opposite_direction=(operation_change_value>0)?1:0;//if the change value is >0, then means it is moving forward, the opposite direction is 1(backward)
+        uint64_t last_move_step=last_move[2*operation_var_idx+opposite_direction];
+        if(score>best_score||(score==best_score&&last_move_step<best_last_move)){
+                best_score=score;
+                best_var_idx=operation_var_idx;
+                best_value=operation_change_value;
+                best_last_move=last_move_step;
+            }
+    }
+    //if there is untabu decreasing move
+    if(best_var_idx!=-1){return best_var_idx;}
+    //TODO::choose from swap operations if there is no decreasing unsat critical
     
-    return best_var_idx;
+    //update weight and random walk
+    if(mt()%10000>smooth_probability){update_clause_weight();}
+    else {smooth_clause_weight();}
+    random_walk();
+    return -1;
 }
 
 void ls_solver::critical_move(uint64_t var_idx, int change_value){
@@ -301,6 +346,11 @@ double ls_solver::TimeElapsed(){
 
 void ls_solver::clear_prev_data(){
     
+}
+//return the upper round of (a/b): (-3.5)->-4; (3.5)->4
+int ls_solver::devide(int a, int b){
+    int up_round=std::ceil((double)(std::abs(a))/(double)(b));
+    return a>0?up_round:-up_round;
 }
 
 //print

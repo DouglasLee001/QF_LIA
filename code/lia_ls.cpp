@@ -244,10 +244,12 @@ void ls_solver::modify_CC(uint64_t var_idx, int direction){
 
 int ls_solver::pick_critical_move(int &best_value){
     int best_score,score,best_var_idx,cnt;
-    int operation_var_idx,operation_change_value;
+    int operation_var_idx,operation_change_value,change_value,future_solution;
     bool BMS=false;
+    bool should_push_vec;
     best_score=0;
     best_var_idx=-1;
+    change_value=0;
     uint64_t best_last_move=UINT64_MAX;
     int        operation_idx=0;
     //determine the critical value
@@ -256,26 +258,42 @@ int ls_solver::pick_critical_move(int &best_value){
         for(int l_idx:cl->literals){
             lit *l=&(_lits[std::abs(l_idx)]);
             for(int i=0;i<l->pos_coff.size();i++){
+                should_push_vec=false;
                 int var_idx=l->pos_coff_var_idx[i];
                 if(l_idx>0&&_step>tabulist[2*var_idx+1]){
-                    operation_var_idx_vec[operation_idx]=var_idx;
-                    operation_change_value_vec[operation_idx++]=devide(-l->delta,l->pos_coff[i]);
+                    should_push_vec=true;
+                    change_value=devide(-l->delta,l->pos_coff[i]);
                 }
                 else if(l_idx<0&&tabulist[2*var_idx]){
-                    operation_var_idx_vec[operation_idx]=var_idx;
-                    operation_change_value_vec[operation_idx++]=devide(1-l->delta, l->pos_coff[i]);
+                    should_push_vec=true;
+                    change_value=devide(1-l->delta, l->pos_coff[i]);
+                }
+                if(should_push_vec){
+                    future_solution=_solution[var_idx]+change_value;
+                    if(future_solution>=_vars[var_idx].low_bound&&future_solution<=_vars[var_idx].upper_bound){
+                        operation_var_idx_vec[operation_idx]=var_idx;
+                        operation_change_value_vec[operation_idx++]=change_value;
+                    }
                 }
                 //if l_idx>0, delta should be <=0, while it is now >0(too large), so the var should enlarge by (-delta/coff) (this is a negative value), if l_idx<0, delta should be >=1, while it is now <1(too small), so the var should enlarge by (1-delta)/coff (positive value)
             }
             for(int i=0;i<l->neg_coff.size();i++){
+                should_push_vec=false;
                 int var_idx=l->neg_coff_var_idx[i];
                 if(l_idx>0&&tabulist[2*var_idx]){
-                    operation_var_idx_vec[operation_idx]=var_idx;
-                    operation_change_value_vec[operation_idx++]=devide(l->delta, l->neg_coff[i]);
+                    should_push_vec=true;
+                    change_value=devide(l->delta, l->neg_coff[i]);
                 }
                 else if(l_idx<0&&tabulist[2*var_idx+1]){
-                    operation_var_idx_vec[operation_idx]=var_idx;
-                    operation_change_value_vec[operation_idx++]=devide(l->delta-1, l->neg_coff[i]);
+                    should_push_vec=true;
+                    change_value=devide(l->delta-1, l->neg_coff[i]);
+                }
+                if(should_push_vec){
+                    future_solution=_solution[var_idx]+change_value;
+                    if(future_solution>=_vars[var_idx].low_bound&&future_solution<=_vars[var_idx].upper_bound){
+                        operation_var_idx_vec[operation_idx]=var_idx;
+                        operation_change_value_vec[operation_idx++]=change_value;
+                    }
                 }
                 //if l_idx>0, delta should be <=0, while it is now >0(too large), so the var should enlarge by (delta/coff) (this is a positive value since the coff is neg), if l_idx<0, the delta should be >=1, while it is now <1(too small), so the var should enlarge by (delta-1)/coff (neg value)
             }
@@ -381,7 +399,28 @@ void ls_solver::print_literal(lit &l){
 
 //calculate score
 int ls_solver::critical_score(uint64_t var_idx, int change_value){
-    return 0;
+    lit *l;
+    int critical_score=0;
+    int delta_old,delta_new,l_clause_idx;
+    //number of make_lits in a clause
+    int make_break_in_clause=0;
+    variable *var=&(_vars[var_idx]);
+    for(int i=0;i<var->literals.size();i++){
+        l=&(_lits[var->literals[i]]);
+        l_clause_idx=var->literal_clause[i];
+        delta_old=l->delta;
+        delta_new=(l_clause_idx>0)?(delta_old+change_value):(delta_old-change_value);
+        if(delta_old<=0&&delta_new>0) make_break_in_clause--;
+        else if(delta_old>0&&delta_new<=0) make_break_in_clause++;
+        //enter a new clause or the last literal
+        if( (i!=(var->literals.size()-1)&&std::abs(l_clause_idx)!=std::abs(var->literal_clause[i+1])) ||i==(var->literals.size()-1)){
+            clause *cp=&(_clauses[std::abs(l_clause_idx)]);
+            if(cp->sat_count==0&&cp->sat_count+make_break_in_clause>0) critical_score+=cp->weight;
+            else if(cp->sat_count>0&&cp->sat_count+make_break_in_clause==0) critical_score-=cp->weight;
+            make_break_in_clause=0;
+        }
+    }
+    return critical_score;
 }
 
 int ls_solver::critical_subscore(uint64_t var_idx, int change_value){
@@ -410,6 +449,7 @@ void ls_solver::critical_score_subscore(uint64_t var_idx, int change_value){
             else if(cp->sat_count==0&&cp->sat_count+make_break_in_clause>0) {
                 sat_a_clause(curr_clause_idx);//sat a clause
             }
+            cp->sat_count+=make_break_in_clause;
             make_break_in_clause=0;
         }
     }

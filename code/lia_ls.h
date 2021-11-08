@@ -32,7 +32,8 @@ struct lit{
 
 struct variable{
     std::vector<int>            literals;
-    std::vector<int>            literal_clause;//literal_clause[i]=c means the ith literal containing the var is in cth clause, c<0 means the coff of the var in this lit is negative
+    std::vector<int>            literal_clause;//literal_clause[i]=c means the ith literal containing the var is in cth clause
+    std::vector<bool>           literal_coff_postive;//literal_clause[i]=true means the coff of the var is positive
     std::vector<uint64_t>       clause_idxs;
     std::string                 var_name;
     int                         low_bound=-INT32_MIN;

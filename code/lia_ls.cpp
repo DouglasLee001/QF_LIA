@@ -46,8 +46,8 @@ void ls_solver::build_lits(std::string &in_string){
                     l->pos_coff_var_idx.push_back((int)transfer_name_to_var(vec[idx]));
                 }
             }
-            l->key=std::atoi(vec[++idx].c_str());
-            if(vec[2]==">="){l->key=1-l->key;invert_lit(*l);}
+            l->key=-std::atoi(vec[++idx].c_str());
+            if(vec[2]==">="){l->key++;invert_lit(*l);}
         }//( <= ( + x1 ( * -1 x2 ) x7 ( * -1 x8 ) ) 0 )
         else{
             l->lits_index=0;
@@ -79,11 +79,13 @@ void ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
                 v=&(_vars[l->pos_coff_var_idx[i]]);
                 v->literals.push_back(l_idx);
                 v->literal_clause.push_back((int)_num_clauses);
+                v->literal_coff_postive.push_back(true);
             }
             for(int i=0;i<l->neg_coff.size();i++){
                 v=&(_vars[l->neg_coff_var_idx[i]]);
                 v->literals.push_back(l_idx);
-                v->literal_clause.push_back(-(int)_num_clauses);
+                v->literal_clause.push_back((int)_num_clauses);
+                v->literal_coff_postive.push_back(false);
             }
         }
         _num_clauses++;
@@ -91,7 +93,7 @@ void ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
     for(variable & v:_vars){
         int pre_clause_idx=INT32_MAX;
         for(int i=0;i<v.literal_clause.size();i++){
-            int tmp_clause_idx=std::abs(v.literal_clause[i]);
+            int tmp_clause_idx=v.literal_clause[i];
             if(pre_clause_idx!=tmp_clause_idx){
                 v.clause_idxs.push_back(tmp_clause_idx);
                 pre_clause_idx=tmp_clause_idx;
@@ -110,6 +112,7 @@ uint64_t ls_solver::transfer_name_to_var(std::string & name){
         var.clause_idxs.reserve(64);
         var.literals.reserve(64);
         var.literal_clause.reserve(64);
+        var.literal_coff_postive.resize(64);
         var.var_name=name;
         _vars.push_back(var);
         return _vars.size()-1;
@@ -451,11 +454,11 @@ int ls_solver::critical_score(uint64_t var_idx, int change_value){
         l=&(_lits[var->literals[i]]);
         l_clause_idx=var->literal_clause[i];
         delta_old=l->delta;
-        delta_new=(l_clause_idx>0)?(delta_old+change_value):(delta_old-change_value);//l_clause_idx means that the coff is positive, and vice versa
+        delta_new=(var->literal_coff_postive[i])?(delta_old+change_value):(delta_old-change_value);//l_clause_idx means that the coff is positive, and vice versa
         if(delta_old<=0&&delta_new>0) make_break_in_clause--;
         else if(delta_old>0&&delta_new<=0) make_break_in_clause++;
         //enter a new clause or the last literal
-        if( (i!=(var->literals.size()-1)&&std::abs(l_clause_idx)!=std::abs(var->literal_clause[i+1])) ||i==(var->literals.size()-1)){
+        if( (i!=(var->literals.size()-1)&&l_clause_idx!=var->literal_clause[i+1]) ||i==(var->literals.size()-1)){
             cp=&(_clauses[std::abs(l_clause_idx)]);
             if(cp->sat_count==0&&cp->sat_count+make_break_in_clause>0) critical_score+=cp->weight;
             else if(cp->sat_count>0&&cp->sat_count+make_break_in_clause==0) critical_score-=cp->weight;
@@ -479,11 +482,11 @@ void ls_solver::critical_score_subscore(uint64_t var_idx, int change_value){
         l=&(_lits[var->literals[i]]);
         l_clause_idx=var->literal_clause[i];
         delta_old=l->delta;
-        l->delta=(l_clause_idx>0)?(l->delta+change_value):(l->delta-change_value);//update the delta
+        l->delta=(var->literal_coff_postive[i])?(l->delta+change_value):(l->delta-change_value);//update the delta
         if(delta_old<=0&&l->delta>0){make_break_in_clause--;}
         else if(delta_old>0&&l->delta<=0){make_break_in_clause++;}
         //enter a new clause or the last literal
-        if( (i!=(var->literals.size()-1)&&std::abs(l_clause_idx)!=std::abs(var->literal_clause[i+1])) ||i==(var->literals.size()-1)){
+        if( (i!=(var->literals.size()-1)&&l_clause_idx!=var->literal_clause[i+1]) ||i==(var->literals.size()-1)){
             curr_clause_idx=std::abs(l_clause_idx);
             cp=&(_clauses[curr_clause_idx]);
             if(cp->sat_count>0&&cp->sat_count+make_break_in_clause==0) {
@@ -527,7 +530,9 @@ bool ls_solver::local_search(){
     start = std::chrono::steady_clock::now();
     initialize();
     for(_step=1;_step<_max_step;_step++){
-        if(0==unsat_clauses->size()){return true;}
+        if(0==unsat_clauses->size()){
+            check_solution();
+            return true;}
         if(_step%1000==0&&(TimeElapsed()>_cutoff)){break;}
         if(no_improve_cnt>500000){initialize();no_improve_cnt=0;}//restart
         flipv=pick_critical_move(change_value);

@@ -47,7 +47,7 @@ void ls_solver::build_lits(std::string &in_string){
                 }
             }
             l->key=std::atoi(vec[++idx].c_str());
-            if(vec[2]==">="){l->key++;invert_lit(*l);}
+            if(vec[2]==">="){l->key=1-l->key;invert_lit(*l);}
         }//( <= ( + x1 ( * -1 x2 ) x7 ( * -1 x8 ) ) 0 )
         else{
             l->lits_index=0;
@@ -219,7 +219,7 @@ void ls_solver::random_walk(){
         clause_idx=unsat_clauses->element_at(mt()%unsat_clauses->size());
         cp=&(_clauses[clause_idx]);
         for(int l_idx:cp->literals){
-            l=&(_lits[cp->literals[std::abs(l_idx)]]);
+            l=&(_lits[std::abs(l_idx)]);
             for(int k=0;k<l->pos_coff.size();k++){
                 var_idx=l->pos_coff_var_idx[k];
                 change_value=(l_idx>0)?devide(-l->delta,l->pos_coff[i]):devide(1-l->delta, l->pos_coff[i]);
@@ -531,7 +531,7 @@ bool ls_solver::local_search(){
         if(_step%1000==0&&(TimeElapsed()>_cutoff)){break;}
         if(no_improve_cnt>500000){initialize();no_improve_cnt=0;}//restart
         flipv=pick_critical_move(change_value);
-        critical_move(flipv, change_value);
+        if(flipv!=-1){critical_move(flipv, change_value);}
         no_improve_cnt=(update_best_solution())?0:(no_improve_cnt+1);
     }
     return false;

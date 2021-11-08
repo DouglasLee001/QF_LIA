@@ -20,7 +20,6 @@
 namespace lia {
 //one arith lit is in the form of a_1*x_1+...+a_n*x_n+k<=0, the cofficient are divided into positive ones and negative ones, the coff are positive.
 //if neg_coff =1 neg_coff_var=x pos_coff=1 pos_coff_var=y means y-x
-const int max_int=2147483640;
 struct lit{
     std::vector<int>            pos_coff_var_idx;
     std::vector<int>            pos_coff;
@@ -36,8 +35,8 @@ struct variable{
     std::vector<int>            literal_clause;//literal_clause[i]=c means the ith literal containing the var is in cth clause, c<0 means the coff of the var in this lit is negative
     std::vector<uint64_t>       clause_idxs;
     std::string                 var_name;
-    int                         low_bound=-max_int;
-    int                         upper_bound=max_int;
+    int                         low_bound=-INT32_MIN;
+    int                         upper_bound=INT32_MAX;
 };
 
 struct clause{
@@ -124,6 +123,7 @@ public:
     double                      TimeElapsed();
     void                        clear_prev_data();
     int                         devide(int a, int b);
+    void                        insert_operation(int var_idx,int change_value,int &operation_idx);
     //print
     void                        print_formula();
     void                        print_literal(lit &l);

@@ -89,9 +89,13 @@ void ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
         _num_clauses++;
     }
     for(variable & v:_vars){
-        uint64_t curr_clause_idx=UINTMAX_MAX;
+        int pre_clause_idx=INT32_MAX;
         for(int i=0;i<v.literal_clause.size();i++){
-            if(curr_clause_idx!=v.literal_clause[i]){v.clause_idxs.push_back(v.literal_clause[i]);}
+            int tmp_clause_idx=std::abs(v.literal_clause[i]);
+            if(pre_clause_idx!=tmp_clause_idx){
+                v.clause_idxs.push_back(tmp_clause_idx);
+                pre_clause_idx=tmp_clause_idx;
+            }
         }
     }
     _num_vars=_vars.size();
@@ -202,7 +206,46 @@ void ls_solver::smooth_clause_weight(){
 }
 
 void ls_solver::random_walk(){
-    
+    int clause_idx,operation_idx,change_value,var_idx,score,operation_direction;
+    int best_score=INT32_MIN;
+    int best_operation_idx=0;
+    uint64_t best_last_move=UINT64_MAX;
+    uint64_t last_move_step;
+    operation_idx=0;
+    clause *cp;
+    lit *l;
+    for(int i=0;i<3&&operation_idx<5;i++){
+        clause_idx=unsat_clauses->element_at(mt()%unsat_clauses->size());
+        cp=&(_clauses[clause_idx]);
+        for(int l_idx:cp->literals){
+            l=&(_lits[cp->literals[std::abs(l_idx)]]);
+            for(int k=0;k<l->pos_coff.size();k++){
+                var_idx=l->pos_coff_var_idx[k];
+                change_value=(l_idx>0)?devide(-l->delta,l->pos_coff[i]):devide(1-l->delta, l->pos_coff[i]);
+                insert_operation(var_idx, change_value, operation_idx);
+            }
+            for(int k=0;k<l->neg_coff.size();k++){
+                var_idx=l->neg_coff_var_idx[k];
+                change_value=(l_idx>0)?devide(l->delta, l->neg_coff[i]):devide(l->delta-1, l->neg_coff[i]);
+                insert_operation(var_idx, change_value, operation_idx);
+            }
+        }
+    }
+    for(int i=0;i<operation_idx;i++){
+        var_idx=operation_var_idx_vec[i];
+        change_value=operation_change_value_vec[i];
+        score=critical_score(var_idx, change_value);
+        operation_direction=(change_value>0)?0:1;
+        last_move_step=last_move[2*var_idx+(operation_direction+1)%2];
+        if(score>best_score||(score==best_score&&last_move_step<best_last_move)){
+            best_score=score;
+            best_last_move=last_move_step;
+            best_operation_idx=i;
+        }
+    }
+    var_idx=operation_var_idx_vec[best_operation_idx];
+    change_value=operation_change_value_vec[best_operation_idx];
+    critical_move(var_idx, change_value);
 }
 
 //construction
@@ -244,7 +287,7 @@ void ls_solver::modify_CC(uint64_t var_idx, int direction){
 
 int ls_solver::pick_critical_move(int &best_value){
     int best_score,score,best_var_idx,cnt;
-    int operation_var_idx,operation_change_value,change_value,future_solution;
+    int operation_var_idx,operation_change_value,change_value;
     bool BMS=false;
     bool should_push_vec;
     best_score=0;
@@ -268,13 +311,7 @@ int ls_solver::pick_critical_move(int &best_value){
                     should_push_vec=true;
                     change_value=devide(1-l->delta, l->pos_coff[i]);
                 }
-                if(should_push_vec){
-                    future_solution=_solution[var_idx]+change_value;
-                    if(future_solution>=_vars[var_idx].low_bound&&future_solution<=_vars[var_idx].upper_bound){
-                        operation_var_idx_vec[operation_idx]=var_idx;
-                        operation_change_value_vec[operation_idx++]=change_value;
-                    }
-                }
+                if(should_push_vec){insert_operation(var_idx, change_value, operation_idx);}
                 //if l_idx>0, delta should be <=0, while it is now >0(too large), so the var should enlarge by (-delta/coff) (this is a negative value), if l_idx<0, delta should be >=1, while it is now <1(too small), so the var should enlarge by (1-delta)/coff (positive value)
             }
             for(int i=0;i<l->neg_coff.size();i++){
@@ -288,13 +325,7 @@ int ls_solver::pick_critical_move(int &best_value){
                     should_push_vec=true;
                     change_value=devide(l->delta-1, l->neg_coff[i]);
                 }
-                if(should_push_vec){
-                    future_solution=_solution[var_idx]+change_value;
-                    if(future_solution>=_vars[var_idx].low_bound&&future_solution<=_vars[var_idx].upper_bound){
-                        operation_var_idx_vec[operation_idx]=var_idx;
-                        operation_change_value_vec[operation_idx++]=change_value;
-                    }
-                }
+                if(should_push_vec){insert_operation(var_idx, change_value, operation_idx);}
                 //if l_idx>0, delta should be <=0, while it is now >0(too large), so the var should enlarge by (delta/coff) (this is a positive value since the coff is neg), if l_idx<0, the delta should be >=1, while it is now <1(too small), so the var should enlarge by (delta-1)/coff (neg value)
             }
         }
@@ -375,6 +406,13 @@ void ls_solver::clear_prev_data(){
 int ls_solver::devide(int a, int b){
     int up_round=std::ceil((double)(std::abs(a))/(double)(b));
     return a>0?up_round:-up_round;
+}
+void ls_solver::insert_operation(int var_idx,int change_value,int &operation_idx){
+    int future_solution=_solution[var_idx]+change_value;
+    if(future_solution>=_vars[var_idx].low_bound&&future_solution<=_vars[var_idx].upper_bound){
+        operation_var_idx_vec[operation_idx]=var_idx;
+        operation_change_value_vec[operation_idx++]=change_value;
+    }
 }
 
 //print

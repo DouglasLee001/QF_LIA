@@ -214,6 +214,7 @@ void ls_solver::random_walk(){
     operation_idx=0;
     clause *cp;
     lit *l;
+    //determine the operations
     for(int i=0;i<3&&operation_idx<5;i++){
         clause_idx=unsat_clauses->element_at(mt()%unsat_clauses->size());
         cp=&(_clauses[clause_idx]);
@@ -231,6 +232,7 @@ void ls_solver::random_walk(){
             }
         }
     }
+    //choose the best operation
     for(int i=0;i<operation_idx;i++){
         var_idx=operation_var_idx_vec[i];
         change_value=operation_change_value_vec[i];
@@ -243,6 +245,7 @@ void ls_solver::random_walk(){
             best_operation_idx=i;
         }
     }
+    //make move
     var_idx=operation_var_idx_vec[best_operation_idx];
     change_value=operation_change_value_vec[best_operation_idx];
     critical_move(var_idx, change_value);
@@ -375,7 +378,7 @@ void ls_solver::critical_move(uint64_t var_idx, int change_value){
     tabulist[var_idx*2+(direction+1)%2]=_step+3+mt()%10;
     if(CC_mode!=-1){modify_CC(var_idx,direction);}
 }
-
+//transfer the ">" to "<="
 void ls_solver::invert_lit(lit &l){
     l.key=1-l.key;
     std::vector<int> tmp_coff_var_idx=l.pos_coff_var_idx;
@@ -385,7 +388,7 @@ void ls_solver::invert_lit(lit &l){
     l.neg_coff_var_idx=tmp_coff_var_idx;
     l.neg_coff=tmp_coff;
 }
-
+//all coffs are positive, go through all terms of the literal
 int ls_solver::delta_lit(lit &l){
     int delta=l.key;
     for(int i=0;i<l.pos_coff.size();i++){delta+=(l.pos_coff[i]*_solution[l.pos_coff_var_idx[i]]);}
@@ -438,6 +441,7 @@ void ls_solver::print_literal(lit &l){
 //calculate score
 int ls_solver::critical_score(uint64_t var_idx, int change_value){
     lit *l;
+    clause *cp;
     int critical_score=0;
     int delta_old,delta_new,l_clause_idx;
     //number of make_lits in a clause
@@ -447,12 +451,12 @@ int ls_solver::critical_score(uint64_t var_idx, int change_value){
         l=&(_lits[var->literals[i]]);
         l_clause_idx=var->literal_clause[i];
         delta_old=l->delta;
-        delta_new=(l_clause_idx>0)?(delta_old+change_value):(delta_old-change_value);
+        delta_new=(l_clause_idx>0)?(delta_old+change_value):(delta_old-change_value);//l_clause_idx means that the coff is positive, and vice versa
         if(delta_old<=0&&delta_new>0) make_break_in_clause--;
         else if(delta_old>0&&delta_new<=0) make_break_in_clause++;
         //enter a new clause or the last literal
         if( (i!=(var->literals.size()-1)&&std::abs(l_clause_idx)!=std::abs(var->literal_clause[i+1])) ||i==(var->literals.size()-1)){
-            clause *cp=&(_clauses[std::abs(l_clause_idx)]);
+            cp=&(_clauses[std::abs(l_clause_idx)]);
             if(cp->sat_count==0&&cp->sat_count+make_break_in_clause>0) critical_score+=cp->weight;
             else if(cp->sat_count>0&&cp->sat_count+make_break_in_clause==0) critical_score-=cp->weight;
             make_break_in_clause=0;
@@ -468,7 +472,8 @@ int ls_solver::critical_subscore(uint64_t var_idx, int change_value){
 void ls_solver::critical_score_subscore(uint64_t var_idx, int change_value){
     variable * var=&(_vars[var_idx]);
     lit *l;
-    int l_clause_idx,delta_old;
+    clause *cp;
+    int l_clause_idx,delta_old,curr_clause_idx;
     int make_break_in_clause=0;
     for(int i=0;i<var->literals.size();i++){
         l=&(_lits[var->literals[i]]);
@@ -479,8 +484,8 @@ void ls_solver::critical_score_subscore(uint64_t var_idx, int change_value){
         else if(delta_old>0&&l->delta<=0){make_break_in_clause++;}
         //enter a new clause or the last literal
         if( (i!=(var->literals.size()-1)&&std::abs(l_clause_idx)!=std::abs(var->literal_clause[i+1])) ||i==(var->literals.size()-1)){
-            int curr_clause_idx=std::abs(l_clause_idx);
-            clause *cp=&(_clauses[curr_clause_idx]);
+            curr_clause_idx=std::abs(l_clause_idx);
+            cp=&(_clauses[curr_clause_idx]);
             if(cp->sat_count>0&&cp->sat_count+make_break_in_clause==0) {
                 unsat_a_clause(curr_clause_idx);//unsat clause
             }

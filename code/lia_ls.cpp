@@ -112,7 +112,7 @@ uint64_t ls_solver::transfer_name_to_var(std::string & name){
         var.clause_idxs.reserve(64);
         var.literals.reserve(64);
         var.literal_clause.reserve(64);
-        var.literal_coff_postive.resize(64);
+        var.literal_coff_postive.reserve(64);
         var.var_name=name;
         _vars.push_back(var);
         return _vars.size()-1;
@@ -313,7 +313,7 @@ int ls_solver::pick_critical_move(int &best_value){
                     should_push_vec=true;
                     change_value=devide(-l->delta,l->pos_coff[i]);
                 }
-                else if(l_idx<0&&tabulist[2*var_idx]){
+                else if(l_idx<0&&_step>tabulist[2*var_idx]){
                     should_push_vec=true;
                     change_value=devide(1-l->delta, l->pos_coff[i]);
                 }
@@ -323,11 +323,11 @@ int ls_solver::pick_critical_move(int &best_value){
             for(int i=0;i<l->neg_coff.size();i++){
                 should_push_vec=false;
                 int var_idx=l->neg_coff_var_idx[i];
-                if(l_idx>0&&tabulist[2*var_idx]){
+                if(l_idx>0&&_step>tabulist[2*var_idx]){
                     should_push_vec=true;
                     change_value=devide(l->delta, l->neg_coff[i]);
                 }
-                else if(l_idx<0&&tabulist[2*var_idx+1]){
+                else if(l_idx<0&&_step>tabulist[2*var_idx+1]){
                     should_push_vec=true;
                     change_value=devide(l->delta-1, l->neg_coff[i]);
                 }

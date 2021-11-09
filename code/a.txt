@@ -1,4 +1,4 @@
-26
+30
 0 true
 1 ( >= x0_minus 0 )
 2 ( >= x0_plus 0 )
@@ -20,13 +20,17 @@
 18 ( >= x8_plus 0 )
 19 ( >= x9_minus 0 )
 20 ( >= x9_plus 0 )
-21 ( <= ( + x0_minus ( * -1 x0_plus ) x4_minus ( * -1 x4_plus ) x6_minus ( * -1 x6_plus ) ( * -1 x9_minus ) x9_plus ) 1 )
-22 ( <= ( + x2_minus ( * -1 x2_plus ) x7_minus ( * -1 x7_plus ) ( * -1 x8_minus ) x8_plus ) 0 )
-23 ( <= ( + x1_minus ( * -1 x1_plus ) ( * -1 x2_minus ) x2_plus x5_minus ( * -1 x5_plus ) ( * -1 x7_minus ) x7_plus ) 1 )
-24 ( >= ( + x8_minus ( * -1 x8_plus ) ) 1 )
-25 ( >= ( + x1_minus ( * -1 x1_plus ) x3_minus ( * -1 x3_plus ) x4_minus ( * -1 x4_plus ) x6_minus ( * -1 x6_plus ) ) 1 )
+21 ( <= ( + x0_minus ( * -1 x0_plus ) ( * -1 x2_minus ) x2_plus ( * -1 x4_minus ) x4_plus ( * -1 x6_minus ) x6_plus ) 1 )
+22 ( <= ( + x0_minus ( * -1 x0_plus ) ( * -1 x4_minus ) x4_plus x5_minus ( * -1 x5_plus ) ( * -1 x8_minus ) x8_plus ) 0 )
+23 ( <= ( + x2_minus ( * -1 x2_plus ) ( * -1 x6_minus ) x6_plus ( * -1 x9_minus ) x9_plus ) 0 )
+24 ( <= ( + ( * 2 x2_minus ) ( * -2 x2_plus ) ( * -1 x3_minus ) x3_plus x4_minus ( * -1 x4_plus ) x5_minus ( * -1 x5_plus ) ( * -1 x6_minus ) x6_plus ) -1 )
+25 ( >= ( + x2_minus ( * -1 x2_plus ) ( * -1 x3_minus ) x3_plus ( * -1 x5_minus ) x5_plus ( * -1 x6_minus ) x6_plus ) 0 )
+26 ( >= ( + x1_minus ( * -1 x1_plus ) ( * -1 x2_minus ) x2_plus ( * -1 x4_minus ) x4_plus x5_minus ( * -1 x5_plus ) ( * -1 x6_minus ) x6_plus ( * -1 x9_minus ) x9_plus ) 0 )
+27 ( >= ( + x0_minus ( * -1 x0_plus ) ( * -1 x7_minus ) x7_plus ) 1 )
+28 ( >= ( + x0_minus ( * -1 x0_plus ) ( * -1 x3_minus ) x3_plus x5_minus ( * -1 x5_plus ) x9_minus ( * -1 x9_plus ) ) -1 )
+29 ( >= ( + x5_minus ( * -1 x5_plus ) ( * -1 x6_minus ) x6_plus x8_minus ( * -1 x8_plus ) ) 0 )
 0
-25
+29
 ( 1 )
 ( 2 )
 ( 3 )
@@ -52,3 +56,8 @@
 ( 23 )
 ( 24 )
 ( 25 )
+( 26 )
+( 27 )
+( 28 )
+( 29 )
+sat

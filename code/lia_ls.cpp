@@ -79,13 +79,13 @@ void ls_solver::build_instance(std::vector<std::vector<int> >& clause_vec){
                 v=&(_vars[l->pos_coff_var_idx[i]]);
                 v->literals.push_back(l_idx);
                 v->literal_clause.push_back((int)_num_clauses);
-                v->literal_coff_postive.push_back(true);
+                v->literal_coff.push_back(l->pos_coff[i]);
             }
             for(int i=0;i<l->neg_coff.size();i++){
                 v=&(_vars[l->neg_coff_var_idx[i]]);
                 v->literals.push_back(l_idx);
                 v->literal_clause.push_back((int)_num_clauses);
-                v->literal_coff_postive.push_back(false);
+                v->literal_coff.push_back(-l->neg_coff[i]);
             }
         }
         _num_clauses++;
@@ -112,7 +112,7 @@ uint64_t ls_solver::transfer_name_to_var(std::string & name){
         var.clause_idxs.reserve(64);
         var.literals.reserve(64);
         var.literal_clause.reserve(64);
-        var.literal_coff_postive.reserve(64);
+        var.literal_coff.reserve(64);
         var.var_name=name;
         _vars.push_back(var);
         return _vars.size()-1;
@@ -454,7 +454,7 @@ int ls_solver::critical_score(uint64_t var_idx, int change_value){
         l=&(_lits[var->literals[i]]);
         l_clause_idx=var->literal_clause[i];
         delta_old=l->delta;
-        delta_new=(var->literal_coff_postive[i])?(delta_old+change_value):(delta_old-change_value);//l_clause_idx means that the coff is positive, and vice versa
+        delta_new=delta_old+(var->literal_coff[i]*change_value);//l_clause_idx means that the coff is positive, and vice versa
         if(delta_old<=0&&delta_new>0) make_break_in_clause--;
         else if(delta_old>0&&delta_new<=0) make_break_in_clause++;
         //enter a new clause or the last literal
@@ -482,7 +482,7 @@ void ls_solver::critical_score_subscore(uint64_t var_idx, int change_value){
         l=&(_lits[var->literals[i]]);
         l_clause_idx=var->literal_clause[i];
         delta_old=l->delta;
-        l->delta=(var->literal_coff_postive[i])?(l->delta+change_value):(l->delta-change_value);//update the delta
+        l->delta=(l->delta+var->literal_coff[i]*change_value);//update the delta
         if(delta_old<=0&&l->delta>0){make_break_in_clause--;}
         else if(delta_old>0&&l->delta<=0){make_break_in_clause++;}
         //enter a new clause or the last literal

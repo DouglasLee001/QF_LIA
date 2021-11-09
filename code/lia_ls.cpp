@@ -257,7 +257,11 @@ void ls_solver::random_walk(){
 //construction
 void ls_solver::construct_slution_score(){
 //TODO::this is a temp function, setting all vars 0
-    for(int i=0;i<_num_vars;i++){_solution[i]=0;}
+    for(int i=0;i<_num_vars;i++){
+        if(_vars[i].low_bound>0){_solution[i]=_vars[i].low_bound;}
+        else if(_vars[i].upper_bound<0){_solution[i]=_vars[i].upper_bound;}
+        else{_solution[i]=0;}
+    }
 }
 
 uint64_t ls_solver::pick_construct_idx(int &best_value){

@@ -9,7 +9,7 @@
 using namespace std;
 namespace call{
 Call_fun::Call_fun(){
-    m_ls=new lia::ls_solver();
+    m_ls=new lia::ls_solver(0);
 }
 
 int Call_fun::func(int argc,char *argv[]){

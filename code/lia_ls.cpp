@@ -172,6 +172,7 @@ void ls_solver::reduce_vars(){
             if(hash_map[pre_idx*tmp_vars_size+pos_idx]==occur_time[pre_idx]){
                 pair_x->insert_element(pre_idx);
                 pair_y->insert_element(pos_idx);
+                break;
             }
         }
     }

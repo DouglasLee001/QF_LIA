@@ -18,7 +18,7 @@
 #include "lia_Array.h"
 
 namespace lia {
-const int max_int=214748364;
+const int max_int=2147483640;
 //one arith lit is in the form of a_1*x_1+...+a_n*x_n+k<=0, the cofficient are divided into positive ones and negative ones, the coff are positive.
 //if neg_coff =1 neg_coff_var=x pos_coff=1 pos_coff_var=y means y-x
 struct lit{

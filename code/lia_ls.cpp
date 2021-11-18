@@ -372,12 +372,12 @@ void ls_solver::random_walk(){
             l=&(_lits[std::abs(l_idx)]);
             for(int k=0;k<l->pos_coff.size();k++){
                 var_idx=l->pos_coff_var_idx[k];
-                change_value=(l_idx>0)?devide(-l->delta,l->pos_coff[i]):devide(1-l->delta, l->pos_coff[i]);
+                change_value=(l_idx>0)?devide(-l->delta,l->pos_coff[k]):devide(1-l->delta, l->pos_coff[k]);
                 insert_operation(var_idx, change_value, operation_idx);
             }
             for(int k=0;k<l->neg_coff.size();k++){
                 var_idx=l->neg_coff_var_idx[k];
-                change_value=(l_idx>0)?devide(l->delta, l->neg_coff[i]):devide(l->delta-1, l->neg_coff[i]);
+                change_value=(l_idx>0)?devide(l->delta, l->neg_coff[k]):devide(l->delta-1, l->neg_coff[k]);
                 insert_operation(var_idx, change_value, operation_idx);
             }
         }

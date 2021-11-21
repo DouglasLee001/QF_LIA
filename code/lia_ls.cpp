@@ -247,6 +247,7 @@ void ls_solver::reduce_vars(){
     //set low and upbound
     for(original_var_idx=0;original_var_idx<_tmp_vars.size();original_var_idx++){
         original_var=&(_tmp_vars[original_var_idx]);
+        if(occur_time[original_var_idx]==0){continue;}
         //original var
         if(!pair_x->is_in_array(original_var_idx)&&!pair_y->is_in_array(original_var_idx)){
             new_var=&(_vars[transfer_name_to_var(original_var->var_name)]);
